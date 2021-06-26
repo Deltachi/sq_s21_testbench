@@ -1,7 +1,7 @@
 const gecko = require("geckodriver"); // firefox driver
-const firefox = require("selenium-webdriver/firefox"); // firefox-browser
-const { Builder, By, Key, until } = require("selenium-webdriver"); // selenium
-const { test, expect, beforeAll, beforeEach, afterAll } = require("@jest/globals"); // jest test-suite
+import firefox from "selenium-webdriver/firefox"; // firefox-browser
+import { Builder, By, Key, ThenableWebDriver, until, WebDriver } from "selenium-webdriver"; // selenium
+import { test, expect, beforeAll, beforeEach, afterAll } from "@jest/globals"; // jest test-suite
 
 const options = new firefox.Options(); // optional
 
@@ -9,14 +9,14 @@ const loginPage = "https://test7.ilias.de/login.php?target=root_1&client_id=test
 const testPage =
 	"https://test7.ilias.de/ilias.php?ref_id=69540&cmd=infoScreen&cmdClass=ilobjtestgui&cmdNode=bc:um&baseClass=ilRepositoryGUI&ref_id=69540";
 
-let driver; // web-crawling bot
+let driver: WebDriver; // web-crawling bot
 
 /**
  * "Fake" sleep function to stop skript for x ms.
  * @param {number} ms Milliseconds to sleep
  * @returns Promise for the timeout function - resolve
  */
-function sleep(ms) {
+function sleep(ms: number) {
 	return new Promise((resolve) => {
 		setTimeout(resolve, ms);
 	});
@@ -24,9 +24,9 @@ function sleep(ms) {
 
 /**
  * Initializes the webdriver
- * @returns ThenableWebDriver
+ * @returns WebDriver
  */
-async function createDriver() {
+async function createDriver(): Promise<WebDriver> {
 	return await new Builder().forBrowser("firefox").setFirefoxOptions(options).build();
 }
 
@@ -34,7 +34,7 @@ async function createDriver() {
  * Attempts to login the driver with user credentials
  * @returns true if login was successfull
  */
-async function login() {
+async function login():Promise<boolean> {
 	try {
 		await driver.get(loginPage);
 		await driver.findElement(By.name("username")).sendKeys("Scheffler");

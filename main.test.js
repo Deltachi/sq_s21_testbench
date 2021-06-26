@@ -11,16 +11,29 @@ const testPage =
 
 let driver; // web-crawling bot
 
+/**
+ * "Fake" sleep function to stop skript for x ms.
+ * @param {number} ms Milliseconds to sleep
+ * @returns Promise for the timeout function - resolve
+ */
 function sleep(ms) {
 	return new Promise((resolve) => {
 		setTimeout(resolve, ms);
 	});
 }
 
-async function setupDriver() {
-	driver = await new Builder().forBrowser("firefox").setFirefoxOptions(options).build();
+/**
+ * Initializes the webdriver
+ * @returns ThenableWebDriver
+ */
+async function createDriver() {
+	return await new Builder().forBrowser("firefox").setFirefoxOptions(options).build();
 }
 
+/**
+ * Attempts to login the driver with user credentials
+ * @returns true if login was successfull
+ */
 async function login() {
 	try {
 		await driver.get(loginPage);
@@ -34,18 +47,25 @@ async function login() {
 	}
 }
 
+/**
+ * Navigates the driver to the Test page and clicks the resume or start button
+ */
+async function startTest() {
+	await driver.get(testPage);
+	let button;
+	try {
+		button = await driver.findElement(By.name("cmd[startPlayer]")); // ein Test der neu gestartet wird hat einen anderen Button als
+	} catch {
+		button = await driver.findElement(By.name("cmd[resumePlayer]")); // ein Test, welcher fortgesetzt werden kann
+	} finally {
+		button.click();
+	}
+}
+
 async function test1() {
 	let result = null;
 	try {
-		await driver.get(testPage);
-		let button;
-		try {
-			button = await driver.findElement(By.name("cmd[startPlayer]")); // ein Test der neu gestartet wird hat einen anderen Button als
-		} catch {
-			button = await driver.findElement(By.name("cmd[resumePlayer]")); // ein Test, welcher fortgesetzt werden kann
-		} finally {
-			button.click();
-		}
+		await startTest();
 
 		await driver.wait(until.elementsLocated(By.id("listofquestions")), 30000);
 		await driver.findElement(By.id("listofquestions")).findElement(By.linkText("Freitext")).click();
@@ -56,7 +76,10 @@ async function test1() {
 		await driver
 			.findElement(By.css(".mce-content-body"))
 			.sendKeys("Hallo das ist ein Text, genereiert von Selenium!");
-		await sleep(500);
+		await sleep(500); // wait for tinymce editor to process the input
+		// await driver.navigate().refresh();
+		// await sleep(500);
+
 		result = await driver.findElement(By.css(".mce-content-body p")).getText();
 
 		await driver.switchTo().defaultContent(); // switch back to normal content
@@ -68,7 +91,7 @@ async function test1() {
 }
 
 beforeAll(async () => {
-	await setupDriver(); // bot init
+	driver = await createDriver(); // bot init
 	await login(); // login to ilias
 }, 10000);
 

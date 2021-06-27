@@ -71,7 +71,8 @@ beforeAll(async () => {
 // });
 
 afterAll(async () => {
-	// return await driver.quit(); // browser schließen
+	await sleep(3000);
+	await driver.quit(); // browser schließen
 });
 
 /**

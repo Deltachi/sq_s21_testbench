@@ -34,7 +34,7 @@ async function createDriver(): Promise<WebDriver> {
  * Attempts to login the driver with user credentials
  * @returns true if login was successfull
  */
-async function login():Promise<boolean> {
+async function login(): Promise<boolean> {
 	try {
 		await driver.get(loginPage);
 		await driver.findElement(By.name("username")).sendKeys("Scheffler");
@@ -62,7 +62,27 @@ async function startTest() {
 	}
 }
 
-async function test1() {
+beforeAll(async () => {
+	driver = await createDriver(); // bot init
+	await login(); // login to ilias
+}, 10000);
+
+// beforeEach(async () => {
+// });
+
+afterAll(async () => {
+	// return await driver.quit(); // browser schließen
+});
+
+/**
+ * Dieser Test schlägt fehl, weil ILIAS den Editor Content nicht speichert beim Klicken auf Speichern, wenn das Fenster 3s danach neu geladen wird.
+ */
+// test("Fill freeform, click save and immediate reload", async () => {
+// 	const result = await fillFreeFormSaveAndReload("Hallo das ist ein Text, genereiert von Selenium!");
+// 	expect(result).toBe("Hallo das ist ein Text, genereiert von Selenium!");
+// }, 20000);
+
+async function fillFreeFormSaveAndReload(text: string) {
 	let result = null;
 	try {
 		await startTest();
@@ -73,13 +93,17 @@ async function test1() {
 		await driver.wait(until.elementsLocated(By.css("iframe.tox-edit-area__iframe")), 30000);
 		await driver.switchTo().frame(driver.findElement(By.css("iframe.tox-edit-area__iframe"))); // switch to iframe
 
-		await driver
-			.findElement(By.css(".mce-content-body"))
-			.sendKeys("Hallo das ist ein Text, genereiert von Selenium!");
-		await sleep(500); // wait for tinymce editor to process the input
-		// await driver.navigate().refresh();
-		// await sleep(500);
+		await driver.findElement(By.css(".mce-content-body")).sendKeys(text);
 
+		await driver.switchTo().defaultContent(); // switch back to normal content
+
+		await sleep(500);
+		await driver.findElement(By.css(".tox-toolbar__group > .tox-tbtn:nth-child(1) svg")).click(); // save button of tiny mce editor
+		await sleep(3000);
+		await driver.navigate().refresh();
+		await sleep(500);
+
+		await driver.switchTo().frame(driver.findElement(By.css("iframe.tox-edit-area__iframe"))); // switch to iframe
 		result = await driver.findElement(By.css(".mce-content-body p")).getText();
 
 		await driver.switchTo().defaultContent(); // switch back to normal content
@@ -90,20 +114,37 @@ async function test1() {
 	return result;
 }
 
-beforeAll(async () => {
-	driver = await createDriver(); // bot init
-	await login(); // login to ilias
-}, 10000);
-
-// beforeEach(async () => {
-// 	return await login(); // login to ilias
-// });
-
-afterAll(async () => {
-	return await driver.quit(); // browser schließen
-});
-
-test("Login + Start Test + Fill Freeform", async () => {
-	const result1 = await test1();
-	expect(result1).toBe("Hallo das ist ein Text, genereiert von Selenium!");
+test("Mark text switch to overview and back", async () => {
+	const result = await markWords();
+	expect(result).toBeTruthy();
 }, 20000);
+
+async function markWords(): Promise<boolean> {
+	try {
+		await startTest();
+		await driver.wait(until.elementsLocated(By.id("listofquestions")), 30000);
+		await driver.findElement(By.id("listofquestions")).findElement(By.linkText("Worte markieren")).click();
+		await driver.wait(until.elementsLocated(By.linkText("falsch")), 30000);
+		await (
+			await driver.findElements(By.linkText("falsch"))
+		).forEach(async (element) => {
+			await element.click();
+		});
+		await sleep(2000);
+		await driver.findElement(By.linkText("Bearbeitungsstand")).click();
+
+		await driver.wait(until.elementsLocated(By.id("listofquestions")), 30000);
+		await driver.findElement(By.id("listofquestions")).findElement(By.linkText("Worte markieren")).click();
+		await driver.wait(until.elementsLocated(By.linkText("falsch")), 30000);
+		let elements = await await driver.findElements(By.linkText("falsch"));
+		for (let i = 0; i < elements.length; i++) {
+			let classes = await elements[i].getAttribute("class");
+			if (classes !== "ilc_qetitem_ErrorTextSelected") return false;
+		}
+		return true;
+	} catch (err) {
+		console.error("Error: ", err);
+		return false;
+	} finally {
+	}
+}

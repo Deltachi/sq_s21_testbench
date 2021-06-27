@@ -11,7 +11,8 @@
   "author": "",
   "license": "ISC",
   "jest": {
-        "testPathIgnorePatterns": ["src"]
+        "testPathIgnorePatterns": ["src"],
+        "verbose": false
   },
   "dependencies": {
     "geckodriver": "^2.0.0",

@@ -78,10 +78,10 @@ afterAll(async () => {
 /**
  * Dieser Test schlägt fehl, weil ILIAS den Editor Content nicht speichert beim Klicken auf Speichern, wenn das Fenster 3s danach neu geladen wird.
  */
-// test("Fill freeform, click save and immediate reload", async () => {
-// 	const result = await fillFreeFormSaveAndReload("Hallo das ist ein Text, genereiert von Selenium!");
-// 	expect(result).toBe("Hallo das ist ein Text, genereiert von Selenium!");
-// }, 20000);
+test("Fill freeform, click save and immediate reload", async () => {
+	const result = await fillFreeFormSaveAndReload("Hallo das ist ein Text, genereiert von Selenium!");
+	expect(result).toBe("Hallo das ist ein Text, genereiert von Selenium!");
+}, 20000);
 
 async function fillFreeFormSaveAndReload(text: string) {
 	let result = null;

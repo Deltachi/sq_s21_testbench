@@ -21,4 +21,4 @@ Die Tests werden in den `src/` Ordner geschrieben. Entweder in die `main.test.ts
 Um die Typescript Datei zu kompilieren und die Tests auszuführen, führe `npm run test` im Projektordner aus. Dieser Befehl erstellt ausführbare JS Dateien im `build/` Ordner und führt alle `*.test.js` - Dateien als eigene Test-Suites aus.
 
 ## Hinweise
-Achte darauf, den Jest-Tests genug Zeit zu geben, da der Webdriver je nach Verbindung und Server eine gefühlte Wwigkeit zum Behandeln der Tests braucht.
+Achte darauf, den Jest-Tests genug Zeit zu geben, da der Webdriver je nach Verbindung und Server eine gefühlte Ewigkeit zum Behandeln der Tests braucht.

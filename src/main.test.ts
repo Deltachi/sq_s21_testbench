@@ -2,7 +2,7 @@ const gecko = require("geckodriver"); // firefox driver
 import firefox from "selenium-webdriver/firefox"; // firefox-browser
 import { Builder, By, Key, ThenableWebDriver, until, WebDriver } from "selenium-webdriver"; // selenium
 import { test, expect, beforeAll, beforeEach, afterAll } from "@jest/globals"; // jest test-suite
-import { createDriver, login, sleep, startTest, deleteAnswer, switchToQuestion, switchToOverview, logVar, endTest } from "./helpers";
+import { createDriver, login, sleep, startTest, deleteAnswer, switchToQuestion, switchToOverview, logVar, endTest, Timer } from "./helpers";
 
 const options = new firefox.Options(); // optional
 
@@ -77,6 +77,21 @@ test.skip("Erreiche >= 50% im Test und bestehe", async () => {
 	const result = await pass50Percent();
 	expect(result).toBeTruthy(); // sollte wahr sein, weil die Auswahl gespeichert wird
 }, 110000);
+
+test.skip("Time (active tab) Test", async () => {
+	const result = await timeActiveTest(22);
+	expect(result).toBeLessThan(3); // Die Abweichung sollte weniger als 3 Sekunden sein
+}, 100000); // max 100 sec Test
+
+test.skip("Time (inactive tab) Test", async () => {
+	const result = await timeInactiveTest(22);
+	expect(result).toBeLessThan(3); // Die Abweichung sollte weniger als 3 Sekunden sein
+}, 100000); // max 100 sec Test
+
+test.only("Time (closed tab) Test", async () => {
+	const result = await timeClosedTest(22);
+	expect(result).toBeLessThan(3); // Die Abweichung sollte weniger als 3 Sekunden sein
+}, 100000); // max 100 sec Test
 
 //###########################
 // BEGIN TEST SUB-FUNCTIONS #
@@ -455,5 +470,154 @@ async function pass50Percent(): Promise<boolean> {
 	} catch (error) {
 		console.error(`50% Test error: ${error}`);
 		return null;
+	}
+}
+
+async function timeActiveTest(timeToWait: number = 22): Promise<number> {
+	try {
+		// Vorbereitung
+		await startTest(driver, testPage);
+		await switchToQuestion(driver, "K-Prim Choice");
+		await sleep(3000);
+
+		// Durchführung
+		const timeLeftText = await driver.findElement(By.id("timeleft")).getText();
+		Timer.start();
+
+		const regex = /\d+/g;
+		let timeStart = timeLeftText.match(regex);
+		//logVar("Time start", timeStart);
+		await sleep(timeToWait * 1000);
+
+		const actualTime = Timer.end();
+		const timeNowText = await driver.findElement(By.id("timeleft")).getText();
+		let timeEnd = timeNowText.match(regex);
+
+		// Prüfung
+		let timeCmp = [Number.parseInt(timeStart[0]) - Math.floor(actualTime / 60), Number.parseInt(timeStart[1]) - (actualTime % 60)];
+		timeCmp[0] = timeCmp[1] < 0 ? timeCmp[0] - 1 : timeCmp[0];
+		timeCmp[1] = timeCmp[1] < 0 ? timeCmp[1] + 60 : timeCmp[1];
+
+		// logVar("Time cmp", timeCmp);
+		// logVar("Time end", timeEnd);
+
+		const timeEnd_0 = Number.parseInt(timeEnd[0]);
+		const timeEnd_1 = Number.parseInt(timeEnd[1]);
+
+		await endTest(driver);
+
+		return timeEnd_0 === timeCmp[0] ? Math.abs(timeEnd_1 - timeCmp[1]) : 999; //Abweichung in der Zeit
+		//return timeEnd_1 <= timeCmp[1] + 2 && timeEnd_1 >= timeCmp[1] - 2 && timeEnd_0 === timeCmp[0]; // liegt die Zeit im Rahmen +-2 Sekunden von der Zielzeit?
+	} catch (error) {
+		console.error(`Time (active tab) Test error: ${error}`);
+		return 999;
+	}
+}
+
+async function timeInactiveTest(timeToWait: number = 22): Promise<number> {
+	try {
+		// Vorbereitung
+		await startTest(driver, testPage);
+		await switchToQuestion(driver, "K-Prim Choice");
+		await sleep(3000);
+
+		// Durchführung
+		const timeLeftText = await driver.findElement(By.id("timeleft")).getText();
+		Timer.start();
+		const regex = /\d+/g;
+		let timeStart = timeLeftText.match(regex);
+		//logVar("Time start", timeStart);
+
+		//Store the ID of the original window
+		const originalWindow = await driver.getWindowHandle();
+
+		// Opens a new tab and switches to new tab
+		await driver.switchTo().newWindow("tab");
+
+		// wait
+		await sleep(timeToWait * 1000);
+
+		//Close the tab or window
+		await driver.close();
+
+		//Switch back to the old tab or window
+		await driver.switchTo().window(originalWindow);
+
+		const actualTime = Timer.end();
+		const timeNowText = await driver.findElement(By.id("timeleft")).getText();
+		let timeEnd = timeNowText.match(regex);
+
+		// Prüfung
+		let timeCmp = [Number.parseInt(timeStart[0]) - Math.floor(actualTime / 60), Number.parseInt(timeStart[1]) - (actualTime % 60)];
+		timeCmp[0] = timeCmp[1] < 0 ? timeCmp[0] - 1 : timeCmp[0];
+		timeCmp[1] = timeCmp[1] < 0 ? timeCmp[1] + 60 : timeCmp[1];
+
+		// logVar("Time cmp", timeCmp);
+		// logVar("Time end", timeEnd);
+
+		const timeEnd_0 = Number.parseInt(timeEnd[0]);
+		const timeEnd_1 = Number.parseInt(timeEnd[1]);
+
+		await endTest(driver);
+
+		return timeEnd_0 === timeCmp[0] ? Math.abs(timeEnd_1 - timeCmp[1]) : 999; //Abweichung in der Zeit
+		//return timeEnd_1 <= timeCmp[1] + 2 && timeEnd_1 >= timeCmp[1] - 2 && timeEnd_0 === timeCmp[0]; // liegt die Zeit im Rahmen +-2 Sekunden von der Zielzeit?
+	} catch (error) {
+		console.error(`Time (active tab) Test error: ${error}`);
+		return 999;
+	}
+}
+
+async function timeClosedTest(timeToWait: number = 22): Promise<number> {
+	try {
+		// Vorbereitung
+		await startTest(driver, testPage);
+		await switchToQuestion(driver, "K-Prim Choice");
+		await sleep(3000);
+
+		// Durchführung
+		const timeLeftText = await driver.findElement(By.id("timeleft")).getText();
+		Timer.start();
+		const regex = /\d+/g;
+		let timeStart = timeLeftText.match(regex);
+		logVar("Time start", timeStart);
+
+		// save url
+		const url = await driver.getCurrentUrl();
+
+		//Close the tab or window
+		await driver.close();
+
+		// wait
+		await sleep(timeToWait * 1000);
+
+		driver = await createDriver(options); // bot init
+		await login(driver, loginPage); // login to ilias
+		await startTest(driver, testPage);
+		await switchToQuestion(driver, "K-Prim Choice");
+
+		const actualTime = Timer.end();
+		const timeNowText = await driver.findElement(By.id("timeleft")).getText();
+		let timeEnd = timeNowText.match(regex);
+
+		// Prüfung
+		let timeCmp = [Number.parseInt(timeStart[0]) - Math.floor(actualTime / 60), Number.parseInt(timeStart[1]) - (actualTime % 60)];
+		timeCmp[0] = timeCmp[1] < 0 ? timeCmp[0] - 1 : timeCmp[0];
+		timeCmp[1] = timeCmp[1] < 0 ? timeCmp[1] + 60 : timeCmp[1];
+
+		logVar("Timer seconds", actualTime);
+		logVar("Time cmp", timeCmp);
+		logVar("Time end", timeEnd);
+
+		const timeEnd_0 = Number.parseInt(timeEnd[0]);
+		const timeEnd_1 = Number.parseInt(timeEnd[1]);
+
+		await endTest(driver);
+
+		return timeEnd_0 === timeCmp[0] ? Math.abs(timeEnd_1 - timeCmp[1]) : 999; //Abweichung in der Zeit
+		//return timeEnd_1 <= timeCmp[1] + 2 && timeEnd_1 >= timeCmp[1] - 2 && timeEnd_0 === timeCmp[0]; // liegt die Zeit im Rahmen +-2 Sekunden von der Zielzeit?
+	} catch (error) {
+		console.error(`Time (active tab) Test error: ${error}`);
+		return 999;
 	}
 }

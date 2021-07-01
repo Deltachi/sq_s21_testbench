@@ -5,14 +5,14 @@
   "main": "main.js",
   "scripts": {
     "compile": "npx tsc",
-    "test": "npm run compile && jest"
+    "test": "npm run compile && jest --verbose"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "jest": {
         "testPathIgnorePatterns": ["src"],
-        "verbose": false
+        "verbose": true
   },
   "dependencies": {
     "geckodriver": "^2.0.0",

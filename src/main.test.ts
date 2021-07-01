@@ -2,114 +2,81 @@ const gecko = require("geckodriver"); // firefox driver
 import firefox from "selenium-webdriver/firefox"; // firefox-browser
 import { Builder, By, Key, ThenableWebDriver, until, WebDriver } from "selenium-webdriver"; // selenium
 import { test, expect, beforeAll, beforeEach, afterAll } from "@jest/globals"; // jest test-suite
+import { createDriver, login, sleep, startTest, deleteAnswer, switchToQuestion, switchToOverview, logVar, endTest } from "./helpers";
 
 const options = new firefox.Options(); // optional
 
 const loginPage = "https://test7.ilias.de/login.php?target=root_1&client_id=test7&cmd=force_login&lang=de";
 const testPage =
 	"https://test7.ilias.de/ilias.php?ref_id=69540&cmd=infoScreen&cmdClass=ilobjtestgui&cmdNode=bc:um&baseClass=ilRepositoryGUI&ref_id=69540";
+const resultPage =
+	"https://test7.ilias.de/ilias.php?ref_id=69540&active_id=14519&cmdClass=iltestevaluationgui&cmdNode=bc:um:tl:us:uf&baseClass=ilRepositoryGUI";
 
 let driver: WebDriver; // web-crawling bot
-
-/**
- * "Fake" sleep function to stop skript for x ms.
- * @param {number} ms Milliseconds to sleep
- * @returns Promise for the timeout function - resolve
- */
-function sleep(ms: number) {
-	return new Promise((resolve) => {
-		setTimeout(resolve, ms);
-	});
-}
-
-/**
- * Initializes the webdriver
- * @returns WebDriver
- */
-async function createDriver(): Promise<WebDriver> {
-	return await new Builder().forBrowser("firefox").setFirefoxOptions(options).build();
-}
-
-/**
- * Attempts to login the driver with user credentials
- * @returns true if login was successfull
- */
-async function login(): Promise<boolean> {
-	try {
-		await driver.get(loginPage);
-		await driver.findElement(By.name("username")).sendKeys("Scheffler");
-		await driver.findElement(By.name("password")).sendKeys("houazfn1", Key.RETURN);
-		await driver.wait(until.elementLocated(By.className("abbreviation")), 30000);
-	} catch {
-		return false;
-	} finally {
-		return true;
-	}
-}
-
-/**
- * Navigates the driver to the Test page and clicks the resume or start button
- */
-async function startTest() {
-	await driver.get(testPage);
-	let button;
-	try {
-		button = await driver.findElement(By.name("cmd[startPlayer]")); // ein Test der neu gestartet wird hat einen anderen Button als
-	} catch {
-		button = await driver.findElement(By.name("cmd[resumePlayer]")); // ein Test, welcher fortgesetzt werden kann
-	} finally {
-		button.click();
-	}
-}
-
-async function deleteAnswer(test: string = ""): Promise<boolean> {
-	try {
-		const dropdown = await driver.findElement(By.id("ilAdvSelListAnchorText_QuestionActions"));
-		//await driver.wait(until.elementIsVisible(dropdown), 2000);
-		//dropdown.click(); //overlapping elements buggggging regular click out
-		await sleep(500); // alternative way
-		driver.executeScript("arguments[0].click();", dropdown); // alternative way
-		const deleteBtn = await driver.findElement(By.id("tst_discard_solution_action"));
-		await driver.wait(until.elementIsVisible(deleteBtn), 2000);
-		const deleteClasses = await deleteBtn.findElement(By.xpath("..")).getAttribute("class");
-		// wenn das li element (eltern) disabled ist kann die Aufgabe nicht gelöscht werden
-		if (deleteClasses.indexOf("disabled") >= 0) {
-			return false;
-		}
-		deleteBtn.click();
-		await sleep(500);
-		await driver.wait(until.elementLocated(By.name("cmd[discardSolution]")), 1000);
-		await driver.findElement(By.name("cmd[discardSolution]")).click();
-		await sleep(1000);
-		return true;
-	} catch (err) {
-		console.error(`DELETE ANSWER (test=${test}): ${err}`);
-		return false;
-	}
-}
+const elementWaitTimeout = 5000;
 
 beforeAll(async () => {
-	driver = await createDriver(); // bot init
-	await login(); // login to ilias
+	driver = await createDriver(options); // bot init
+	await login(driver, loginPage); // login to ilias
 }, 10000);
 
 // beforeEach(async () => {
 // });
 
 afterAll(async () => {
-	await sleep(3000);
+	await sleep(2000);
 	await driver.quit(); // browser schließen
 });
 
-test("Fill freeform, click save and immediate reload", async () => {
+test("Fill Freeform, Save and Reload", async () => {
 	const result = await fillFreeFormSaveReloadAndCheck("Hallo das ist ein Text, genereiert von Selenium!");
 	expect(result).toBe("Hallo das ist ein Text, genereiert von Selenium!"); // failed, weil Speichern NICHT speichert
 }, 20000);
 
-test("Mark text switch to overview and back", async () => {
+test("Mark Text and Switch", async () => {
 	const result = await markWordsReloadAndCheck();
 	expect(result).toBeTruthy(); // sollte wahr sein, weil die Auswahl gespeichert wird
 }, 20000);
+
+test("K-Prim and Switch", async () => {
+	const result = await kPrimAndSwitch();
+	expect(result).toBeTruthy(); // sollte wahr sein, weil die Auswahl gespeichert wird
+}, 20000);
+
+test("Begriffe and Switch", async () => {
+	const result = await begriffeAndSwitch();
+	expect(result).toBeTruthy(); // sollte wahr sein, weil die Auswahl gespeichert wird
+}, 20000);
+
+test("Lückentext and Switch", async () => {
+	const result = await lueckentextAndSwitch("Lückentext");
+	expect(result).toBe("Lückentext"); // sollte wahr sein, weil die Auswahl gespeichert wird
+}, 20000);
+
+test("Multiple Choice and Switch", async () => {
+	const result = await multipleChoiceAndSwitch();
+	expect(result).toBeTruthy(); // sollte wahr sein, weil die Auswahl gespeichert wird
+}, 20000);
+
+test("Single Choice and Switch", async () => {
+	const result = await singleChoiceAndSwitch();
+	expect(result).toBeTruthy(); // sollte wahr sein, weil die Auswahl gespeichert wird
+}, 20000);
+
+test("Numerische Frage and Switch", async () => {
+	const result = await numericInputAndSwitch(42);
+	expect(result).toBe(42); // sollte wahr sein, weil die Auswahl gespeichert wird
+}, 20000);
+
+test.skip("Erreiche < 50% im Test und falle durch", async () => {
+	const result = await failAt49Percent();
+	expect(result).toBeTruthy(); // sollte wahr sein, weil die Auswahl gespeichert wird
+}, 110000);
+
+test.skip("Erreiche >= 50% im Test und bestehe", async () => {
+	const result = await pass50Percent();
+	expect(result).toBeTruthy(); // sollte wahr sein, weil die Auswahl gespeichert wird
+}, 110000);
 
 //###########################
 // BEGIN TEST SUB-FUNCTIONS #
@@ -123,14 +90,13 @@ test("Mark text switch to overview and back", async () => {
 async function fillFreeFormSaveReloadAndCheck(text: string) {
 	let result = null;
 	try {
-		await startTest();
+		await startTest(driver, testPage);
 
-		await driver.wait(until.elementsLocated(By.id("listofquestions")), 30000);
-		await driver.findElement(By.id("listofquestions")).findElement(By.linkText("Freitext")).click();
+		await switchToQuestion(driver, "Freitext");
 
-		await driver.wait(until.elementsLocated(By.css("iframe.tox-edit-area__iframe")), 30000);
+		await driver.wait(until.elementsLocated(By.css("iframe.tox-edit-area__iframe")), elementWaitTimeout);
 
-		await deleteAnswer();
+		await deleteAnswer(driver);
 
 		await driver.switchTo().frame(driver.findElement(By.css("iframe.tox-edit-area__iframe"))); // switch to iframe to input into tiny-mce editor
 
@@ -157,13 +123,14 @@ async function fillFreeFormSaveReloadAndCheck(text: string) {
 
 async function markWordsReloadAndCheck(): Promise<boolean> {
 	try {
-		await startTest();
-		await driver.wait(until.elementsLocated(By.id("listofquestions")), 30000);
-		await driver.findElement(By.id("listofquestions")).findElement(By.linkText("Worte markieren")).click();
-		await driver.wait(until.elementsLocated(By.linkText("falsch")), 30000);
+		// Vorbedingung
+		await startTest(driver, testPage);
+		await switchToQuestion(driver, "Worte markieren");
+		await driver.wait(until.elementsLocated(By.linkText("falsch")), elementWaitTimeout);
 
-		await deleteAnswer();
+		await deleteAnswer(driver);
 
+		// Durchführung
 		await (
 			await driver.findElements(By.linkText("falsch"))
 		).forEach(async (element) => {
@@ -172,18 +139,321 @@ async function markWordsReloadAndCheck(): Promise<boolean> {
 		await sleep(2000);
 		await driver.findElement(By.linkText("Bearbeitungsstand")).click();
 
-		await driver.wait(until.elementsLocated(By.id("listofquestions")), 30000);
-		await driver.findElement(By.id("listofquestions")).findElement(By.linkText("Worte markieren")).click();
-		await driver.wait(until.elementsLocated(By.linkText("falsch")), 30000);
+		await switchToQuestion(driver, "Worte markieren");
+		await driver.wait(until.elementsLocated(By.linkText("falsch")), elementWaitTimeout);
+
+		// Prüfen
 		let elements = await await driver.findElements(By.linkText("falsch"));
 		for (let i = 0; i < elements.length; i++) {
-			let classes = await elements[i].getAttribute("class");
-			if (classes !== "ilc_qetitem_ErrorTextSelected") return false;
+			let className = await elements[i].getAttribute("class");
+			if (className !== "ilc_qetitem_ErrorTextSelected") return false; // wenn element nicht ausgewählt ist
 		}
 		return true;
 	} catch (err) {
 		console.error("Error: ", err);
 		return false;
 	} finally {
+	}
+}
+
+async function kPrimAndSwitch() {
+	let radios: Array<boolean> = [];
+	try {
+		// Vorbereitung
+		await startTest(driver, testPage);
+		await switchToQuestion(driver, "K-Prim Choice");
+		await driver.wait(until.elementsLocated(By.xpath("//input[@id='0']")), elementWaitTimeout);
+		await sleep(500);
+
+		await deleteAnswer(driver);
+
+		await sleep(500);
+
+		// Durchführung
+		// Musterlösung
+		await driver.findElement(By.xpath("//input[@id='0']")).click();
+		await driver.findElement(By.xpath("(//input[@id='1'])[2]")).click();
+		await driver.findElement(By.xpath("//input[@id='2']")).click();
+		await driver.findElement(By.xpath("(//input[@id='3'])[2]")).click();
+
+		await sleep(2000);
+		await driver.findElement(By.linkText("Bearbeitungsstand")).click();
+
+		await switchToQuestion(driver, "K-Prim Choice");
+		await driver.wait(until.elementsLocated(By.xpath("//input[@id='0']")), elementWaitTimeout);
+		await sleep(500);
+
+		// Prüfung
+		// Musterlösung?
+		radios[0] = await driver.findElement(By.xpath("//input[@id='0']")).isSelected();
+		radios[1] = await driver.findElement(By.xpath("(//input[@id='1'])[2]")).isSelected();
+		radios[2] = await driver.findElement(By.xpath("//input[@id='2']")).isSelected();
+		radios[3] = await driver.findElement(By.xpath("(//input[@id='3'])[2]")).isSelected();
+
+		for (let radio of radios) {
+			if (radio === false) return false; // wurde einer nicht gespeichert, dann...
+		}
+		return true;
+	} catch (error) {
+		console.error("K-Prim-Error: " + error);
+
+		return false;
+	}
+}
+
+async function begriffeAndSwitch() {
+	let answers: Array<string> = [];
+	try {
+		// Vorbedingung
+		await startTest(driver, testPage);
+		await switchToQuestion(driver, "Begriffe");
+		await driver.wait(until.elementsLocated(By.name("TEXTSUBSET_01")), elementWaitTimeout);
+		await sleep(500);
+
+		await deleteAnswer(driver);
+
+		await sleep(500);
+
+		// Durchführung
+		await driver.findElement(By.name("TEXTSUBSET_01")).sendKeys("Antwort 1");
+		await driver.findElement(By.name("TEXTSUBSET_02")).sendKeys("Antwort 2");
+
+		await sleep(2000);
+
+		await switchToOverview(driver);
+		await switchToQuestion(driver, "Begriffe");
+		await driver.wait(until.elementsLocated(By.name("TEXTSUBSET_01")), elementWaitTimeout);
+		await sleep(500);
+
+		// Prüfung
+		answers[0] = await driver.findElement(By.name("TEXTSUBSET_01")).getAttribute("value");
+		answers[1] = await driver.findElement(By.name("TEXTSUBSET_02")).getAttribute("value");
+
+		if (answers[0] !== "Antwort 1" || answers[1] !== "Antwort 2") return false;
+		return true;
+	} catch (error) {
+		console.error("Begriffe-Error: " + error);
+
+		return false;
+	}
+}
+
+async function lueckentextAndSwitch(input: string): Promise<string> {
+	let answer: string = "";
+	try {
+		// Vorbedingung
+		await startTest(driver, testPage);
+		await switchToQuestion(driver, "Lückentext");
+		await driver.wait(until.elementsLocated(By.name("gap_0")), elementWaitTimeout);
+		await sleep(500);
+
+		await deleteAnswer(driver);
+
+		await sleep(500);
+
+		// Durchführung
+		await driver.findElement(By.name("gap_0")).sendKeys(input);
+
+		await sleep(2000);
+
+		await switchToOverview(driver);
+		await switchToQuestion(driver, "Lückentext");
+		await driver.wait(until.elementsLocated(By.name("gap_0")), elementWaitTimeout);
+		await sleep(500);
+
+		// Prüfung
+		answer = await driver.findElement(By.name("gap_0")).getAttribute("value");
+
+		return answer;
+	} catch (error) {
+		console.error("Lückentext-Error: " + error);
+		return null;
+	}
+}
+
+async function multipleChoiceAndSwitch() {
+	let answers: Array<boolean> = [];
+	try {
+		// Vorbedingung
+		await startTest(driver, testPage);
+		await switchToQuestion(driver, "Multiple Choice");
+		await driver.wait(until.elementsLocated(By.id("answer_0")), elementWaitTimeout);
+		await sleep(500);
+
+		await deleteAnswer(driver);
+
+		await sleep(500);
+
+		// Durchführung
+		await driver.findElement(By.id("answer_0")).click();
+		await driver.findElement(By.id("answer_2")).click();
+
+		await sleep(2000);
+
+		await switchToOverview(driver);
+		await switchToQuestion(driver, "Multiple Choice");
+		await driver.wait(until.elementsLocated(By.id("answer_0")), elementWaitTimeout);
+		await sleep(500);
+
+		// Prüfung
+		answers[0] = await driver.findElement(By.id("answer_0")).isSelected();
+		answers[1] = await driver.findElement(By.id("answer_2")).isSelected();
+
+		return !!answers[0] && !!answers[1];
+	} catch (error) {
+		console.error("Multiple Choice-Error: " + error);
+		return false;
+	}
+}
+
+async function singleChoiceAndSwitch() {
+	let answers: Array<boolean> = [];
+	try {
+		// Vorbedingung
+		await startTest(driver, testPage);
+		await switchToQuestion(driver, "Single Choice");
+		await driver.wait(until.elementsLocated(By.id("answer_0")), elementWaitTimeout);
+		await sleep(500);
+
+		await deleteAnswer(driver);
+
+		await sleep(500);
+
+		// Durchführung
+		await driver.findElement(By.id("answer_0")).click();
+
+		await sleep(2000);
+
+		await switchToOverview(driver);
+		await switchToQuestion(driver, "Single Choice");
+		await driver.wait(until.elementsLocated(By.id("answer_0")), elementWaitTimeout);
+		await sleep(500);
+
+		// Prüfung
+		answers[0] = await driver.findElement(By.id("answer_0")).isSelected();
+
+		return !!answers[0];
+	} catch (error) {
+		console.error("Single Choice-Error: " + error);
+		return false;
+	}
+}
+
+async function numericInputAndSwitch(input: number): Promise<number> {
+	let answer: number;
+	try {
+		// Vorbedingung
+		await startTest(driver, testPage);
+		await switchToQuestion(driver, "Numerische Frage");
+		await driver.wait(until.elementsLocated(By.name("numeric_result")), elementWaitTimeout);
+		await sleep(500);
+
+		await deleteAnswer(driver);
+
+		await sleep(500);
+
+		// Durchführung
+		await driver.findElement(By.name("numeric_result")).sendKeys(input);
+
+		await sleep(2000);
+
+		await switchToOverview(driver);
+		await switchToQuestion(driver, "Numerische Frage");
+		await driver.wait(until.elementsLocated(By.name("numeric_result")), elementWaitTimeout);
+		await sleep(500);
+
+		// Prüfung
+		answer = Number.parseInt(await driver.findElement(By.name("numeric_result")).getAttribute("value"));
+
+		return answer;
+	} catch (error) {
+		console.error("Numerische Frage-Error: " + error);
+		return null;
+	}
+}
+
+async function failAt49Percent(): Promise<boolean> {
+	try {
+		//Vorbedingung
+		await startTest(driver, testPage);
+
+		// Durchführung - Beantworte 2 Fragen nicht (resultiert in 19/39 Punkte gesamt)
+		await switchToQuestion(driver, "Single Choice");
+		await driver.wait(until.elementsLocated(By.id("answer_0")), elementWaitTimeout);
+		await sleep(500);
+
+		await deleteAnswer(driver);
+
+		await sleep(500);
+
+		await switchToOverview(driver);
+		await switchToQuestion(driver, "Lückentext");
+		await driver.wait(until.elementsLocated(By.name("gap_0")), elementWaitTimeout);
+		await sleep(500);
+
+		await deleteAnswer(driver);
+
+		await sleep(500);
+
+		await markWordsReloadAndCheck();
+		await kPrimAndSwitch();
+		await begriffeAndSwitch();
+		//await lueckentextAndSwitch("Lückentext"); // - 5p
+		await multipleChoiceAndSwitch();
+		//await singleChoiceAndSwitch();	// - 5p
+		await numericInputAndSwitch(42);
+
+		// Prüfung
+		await endTest(driver);
+		//await driver.get(resultPage);
+		await driver.wait(until.elementsLocated(By.xpath('//*[@id="mainscrolldiv"]/div[3]/div[2]/div')), elementWaitTimeout);
+		const result = await driver.findElement(By.xpath('//*[@id="mainscrolldiv"]/div[3]/div[2]/div')).getText();
+		return result.indexOf("nicht bestanden") >= 0; //falle durch wenn "nicht bestanden" im alert steht
+	} catch (error) {
+		console.error(`49% Test error: ${error}`);
+		return null;
+	}
+}
+
+async function pass50Percent(): Promise<boolean> {
+	try {
+		//Vorbedingung
+		await startTest(driver, testPage);
+
+		// Durchführung - Beantworte 2 Fragen nicht (resultiert in 20/39 Punkte gesamt)
+		await switchToQuestion(driver, "Single Choice");
+		await driver.wait(until.elementsLocated(By.id("answer_0")), elementWaitTimeout);
+		await sleep(500);
+
+		await deleteAnswer(driver);
+
+		await sleep(500);
+
+		await switchToOverview(driver);
+		await switchToQuestion(driver, "K-Prim Choice");
+		await driver.wait(until.elementsLocated(By.xpath("//input[@id='0']")), elementWaitTimeout);
+		await sleep(500);
+
+		await deleteAnswer(driver);
+
+		await sleep(500);
+
+		await markWordsReloadAndCheck();
+		//await kPrimAndSwitch();	// - 4p
+		await begriffeAndSwitch();
+		await lueckentextAndSwitch("Lückentext");
+		await multipleChoiceAndSwitch();
+		//await singleChoiceAndSwitch();	// - 5p
+		await numericInputAndSwitch(42);
+
+		// Prüfung
+		await endTest(driver);
+		//await driver.get(resultPage);
+		await driver.wait(until.elementsLocated(By.xpath('//*[@id="mainscrolldiv"]/div[3]/div[2]/div')), elementWaitTimeout);
+		const result = await driver.findElement(By.xpath('//*[@id="mainscrolldiv"]/div[3]/div[2]/div')).getText();
+		return result.indexOf("nicht bestanden") < 0; //falle nicht durch wenn nicht "nicht bestanden" im alert steht
+	} catch (error) {
+		console.error(`50% Test error: ${error}`);
+		return null;
 	}
 }

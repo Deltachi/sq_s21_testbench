@@ -114,3 +114,30 @@ export async function endTest(driver: WebDriver) {
 export function logVar(name: string, input: any) {
 	console.log(`${name}: ${input}`);
 }
+
+export class Timer {
+	private static startTime: any;
+	private static endTime: any;
+
+	/**
+	 * Start timer
+	 */
+	static start() {
+		Timer.startTime = new Date();
+	}
+
+	/**
+	 * End Timer and get seconds
+	 * @returns number seconds
+	 */
+	static end(): number {
+		Timer.endTime = new Date();
+		let timeDiff = Timer.endTime - Timer.startTime; //in ms
+		// strip the ms
+		timeDiff /= 1000;
+
+		// get seconds
+		let seconds = Math.round(timeDiff);
+		return seconds;
+	}
+}

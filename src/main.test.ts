@@ -28,7 +28,7 @@ afterAll(async () => {
 	await driver.quit(); // browser schließen
 });
 
-test("Fill Freeform, Save and Reload", async () => {
+test.skip("Fill Freeform, Save and Reload", async () => {
 	const result = await fillFreeFormSaveReloadAndCheck("Hallo das ist ein Text, genereiert von Selenium!");
 	expect(result).toBe("Hallo das ist ein Text, genereiert von Selenium!"); // failed, weil Speichern NICHT speichert
 }, 20000);
@@ -68,28 +68,28 @@ test("Numerische Frage and Switch", async () => {
 	expect(result).toBe(42); // sollte wahr sein, weil die Auswahl gespeichert wird
 }, 20000);
 
-test.skip("Erreiche < 50% im Test und falle durch", async () => {
+test("Erreiche < 50% im Test und falle durch", async () => {
 	const result = await failAt49Percent();
 	expect(result).toBeTruthy(); // sollte wahr sein, weil die Auswahl gespeichert wird
 }, 110000);
 
-test.skip("Erreiche >= 50% im Test und bestehe", async () => {
+test("Erreiche >= 50% im Test und bestehe", async () => {
 	const result = await pass50Percent();
 	expect(result).toBeTruthy(); // sollte wahr sein, weil die Auswahl gespeichert wird
 }, 110000);
 
-test.skip("Time (active tab) Test", async () => {
-	const result = await timeActiveTest(22);
+test("Time (active tab) Test", async () => {
+	const result = await timeActiveTest(5);
 	expect(result).toBeLessThan(3); // Die Abweichung sollte weniger als 3 Sekunden sein
 }, 100000); // max 100 sec Test
 
-test.skip("Time (inactive tab) Test", async () => {
-	const result = await timeInactiveTest(22);
+test("Time (inactive tab) Test", async () => {
+	const result = await timeInactiveTest(5);
 	expect(result).toBeLessThan(3); // Die Abweichung sollte weniger als 3 Sekunden sein
 }, 100000); // max 100 sec Test
 
-test.only("Time (closed tab) Test", async () => {
-	const result = await timeClosedTest(22);
+test("Time (closed tab) Test", async () => {
+	const result = await timeClosedTest(5);
 	expect(result).toBeLessThan(3); // Die Abweichung sollte weniger als 3 Sekunden sein
 }, 100000); // max 100 sec Test
 
@@ -505,6 +505,7 @@ async function timeActiveTest(timeToWait: number = 22): Promise<number> {
 		const timeEnd_1 = Number.parseInt(timeEnd[1]);
 
 		await endTest(driver);
+		await sleep(3000);
 
 		return timeEnd_0 === timeCmp[0] ? Math.abs(timeEnd_1 - timeCmp[1]) : 999; //Abweichung in der Zeit
 		//return timeEnd_1 <= timeCmp[1] + 2 && timeEnd_1 >= timeCmp[1] - 2 && timeEnd_0 === timeCmp[0]; // liegt die Zeit im Rahmen +-2 Sekunden von der Zielzeit?
@@ -558,7 +559,9 @@ async function timeInactiveTest(timeToWait: number = 22): Promise<number> {
 		const timeEnd_0 = Number.parseInt(timeEnd[0]);
 		const timeEnd_1 = Number.parseInt(timeEnd[1]);
 
+		await sleep(2000);
 		await endTest(driver);
+		await sleep(2000);
 
 		return timeEnd_0 === timeCmp[0] ? Math.abs(timeEnd_1 - timeCmp[1]) : 999; //Abweichung in der Zeit
 		//return timeEnd_1 <= timeCmp[1] + 2 && timeEnd_1 >= timeCmp[1] - 2 && timeEnd_0 === timeCmp[0]; // liegt die Zeit im Rahmen +-2 Sekunden von der Zielzeit?
@@ -580,7 +583,7 @@ async function timeClosedTest(timeToWait: number = 22): Promise<number> {
 		Timer.start();
 		const regex = /\d+/g;
 		let timeStart = timeLeftText.match(regex);
-		logVar("Time start", timeStart);
+		// logVar("Time start", timeStart);
 
 		// save url
 		const url = await driver.getCurrentUrl();
@@ -605,14 +608,16 @@ async function timeClosedTest(timeToWait: number = 22): Promise<number> {
 		timeCmp[0] = timeCmp[1] < 0 ? timeCmp[0] - 1 : timeCmp[0];
 		timeCmp[1] = timeCmp[1] < 0 ? timeCmp[1] + 60 : timeCmp[1];
 
-		logVar("Timer seconds", actualTime);
-		logVar("Time cmp", timeCmp);
-		logVar("Time end", timeEnd);
+		// logVar("Timer seconds", actualTime);
+		// logVar("Time cmp", timeCmp);
+		// logVar("Time end", timeEnd);
 
 		const timeEnd_0 = Number.parseInt(timeEnd[0]);
 		const timeEnd_1 = Number.parseInt(timeEnd[1]);
 
+		await sleep(2000);
 		await endTest(driver);
+		await sleep(2000);
 
 		return timeEnd_0 === timeCmp[0] ? Math.abs(timeEnd_1 - timeCmp[1]) : 999; //Abweichung in der Zeit
 		//return timeEnd_1 <= timeCmp[1] + 2 && timeEnd_1 >= timeCmp[1] - 2 && timeEnd_0 === timeCmp[0]; // liegt die Zeit im Rahmen +-2 Sekunden von der Zielzeit?

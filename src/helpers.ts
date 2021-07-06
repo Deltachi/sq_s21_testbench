@@ -2,10 +2,19 @@
  * Helpers Library geschrieben für die Testbench ILIAS
  * @author Dominik
  */
-
 import firefox from "selenium-webdriver/firefox"; // firefox-browser
 import { Builder, By, Key, ThenableWebDriver, until, WebDriver } from "selenium-webdriver"; // selenium
-import { test, expect, beforeAll, beforeEach, afterAll } from "@jest/globals"; // jest test-suite
+
+/**
+ * Constants for page URLs from ILIAS
+ */
+export const PAGES = {
+	loginPage: "https://test7.ilias.de/login.php?target=root_1&client_id=test7&cmd=force_login&lang=de",
+	testPage:
+		"https://test7.ilias.de/ilias.php?ref_id=69540&cmd=infoScreen&cmdClass=ilobjtestgui&cmdNode=bc:um&baseClass=ilRepositoryGUI&ref_id=69540",
+	resultPage:
+		"https://test7.ilias.de/ilias.php?ref_id=69540&active_id=14519&cmdClass=iltestevaluationgui&cmdNode=bc:um:tl:us:uf&baseClass=ilRepositoryGUI",
+};
 
 /**
  * "Fake" sleep function to stop skript for x ms.

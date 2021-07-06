@@ -5,7 +5,9 @@
   "main": "main.js",
   "scripts": {
     "compile": "npx tsc",
-    "test": "npm run compile && jest --verbose"
+    "test": "npm run compile && jest --verbose",
+    "test-1": "npm run compile && jest main.test --verbose",
+    "test-2": "npm run compile && jest main2.test --verbose"
   },
   "keywords": [],
   "author": "",

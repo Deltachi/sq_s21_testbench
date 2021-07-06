@@ -28,7 +28,7 @@ afterAll(async () => {
 	await driver.quit(); // Browser schließen, Prozess beenden
 });
 
-test.skip("t_19: Fill Freeform, Save and Reload", async () => {
+test("t_19: Fill Freeform, Save and Reload", async () => {
 	const result = await fillFreeFormSaveReloadAndCheck("Hallo das ist ein Text, genereiert von Selenium!");
 	expect(result).toBe("Hallo das ist ein Text, genereiert von Selenium!"); // failed, weil Speichern NICHT speichert
 }, 20000);

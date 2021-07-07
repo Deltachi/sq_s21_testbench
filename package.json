@@ -2,7 +2,7 @@
   "name": "testumgebung",
   "version": "1.0.0",
   "description": "",
-  "main": "main.js",
+  "main": "main.test.js",
   "scripts": {
     "compile": "npx tsc",
     "test": "npm run compile && jest --verbose",
